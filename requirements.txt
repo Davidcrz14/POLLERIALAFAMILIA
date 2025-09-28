@@ -1,0 +1,7 @@
+Flask
+Flask-Session
+Flask-CORS
+openai
+requests
+gunicorn
+redis>=3.5.3
