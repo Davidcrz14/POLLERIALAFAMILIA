@@ -695,8 +695,4 @@ Este proyecto es privado y pertenece a Pollería La Familia.
 
 ---
 
-## 📞 Soporte
-
-Para preguntas o soporte, contacta al equipo de desarrollo.
-
-**Desarrollado con ❤️ para Pollería La Familia**
+Creado por DavC
