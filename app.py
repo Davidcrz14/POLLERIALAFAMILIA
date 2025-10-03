@@ -16,7 +16,6 @@ from utilities import format_order_review, parse_payment_method, clean_json_resp
 app = Flask(__name__)
 
 ####################### local ##########################
-"""
 CORS(app, supports_credentials=True)  # Habilita el soporte para credenciales
 # Configura CORS para permitir tu dominio y manejar cookies de sesión
 
@@ -27,10 +26,10 @@ app.config["SESSION_TYPE"] = "filesystem"
 app.config["SESSION_PERMANENT"] = False
 app.config["SESSION_USE_SIGNER"] = True
 Session(app)
-"""
 
-####################### producción ######################                           
-CORS(app, supports_credentials=True, origins=["http://www.pollerialafamilia.com", "https://www.pollerialafamilia.com", 
+####################### producción ######################
+"""
+CORS(app, supports_credentials=True, origins=["http://www.pollerialafamilia.com", "https://www.pollerialafamilia.com",
                                               "http://pollerialafamilia.com", "https://pollerialafamilia.com"],
      allow_headers=["Content-Type", "Authorization", "X-Session-Id"],
      expose_headers=["X-Session-Id"])
@@ -53,6 +52,7 @@ app.config.update(
     SESSION_USE_SIGNER=True
 )
 Session(app)
+"""
 
 ###########################################3
 
@@ -150,7 +150,7 @@ def route_message_based_on_category(category, prompt, messages, conversation_sta
 def handle_confirm_order(messages, user_id_encrypted):
     # Obtener información de los productos
     api_data = get_product_info()
-    
+
     # Convertir la información de productos a un formato JSON que pueda ser utilizado en la instrucción
     products_json = json.dumps(api_data)
 
@@ -237,7 +237,7 @@ def initiate_order_conversation(prompt, messages, conversation_state):
 def handle_order_process(prompt, messages, conversation_state):
     order = conversation_state["order"]
     status = conversation_state["status"]
-    
+
     print("status: "+ status)
 
     if status == "collecting_items":
@@ -288,14 +288,14 @@ def handle_collecting_items(prompt, messages, conversation_state, order):
 
 def handle_choosing_type(prompt, messages, conversation_state):
     recoger_keywords = ["recoger", "recojo"]
-    
+
     if any(keyword in prompt.lower() for keyword in recoger_keywords):
         conversation_state["status"] = "collecting_pickup_phone"
         response = "Entendido, para recoger. Por favor, proporciona tu número de teléfono."
     else:
         conversation_state["status"] = "collecting_address"
         response = "Para delivery. Por favor, proporciona tu dirección completa."
-    
+
     messages.append({"role": "assistant", "content": response})
 
 def handle_collecting_address(prompt, messages, conversation_state, order):
@@ -465,6 +465,30 @@ def handle_general_conversation(prompt, messages):
 def reset_session():
     session.clear()
     return jsonify({"message": "Sesión reiniciada con éxito."})
+
+@app.route('/', methods=['GET'])
+def home():
+    """Ruta de inicio con información de la API"""
+    return jsonify({
+        "service": "Pollería La Familia - AI Assistant",
+        "status": "online",
+        "version": "1.0.0",
+        "endpoints": {
+            "POST /ask": "Enviar mensaje al asistente de IA",
+            "GET /reset_session": "Reiniciar sesión de conversación",
+            "GET /test": "Health check del servicio"
+        },
+        "documentation": "https://github.com/atuctov-stack/POLLERIALAFAMILIA",
+        "example_request": {
+            "url": "/ask",
+            "method": "POST",
+            "body": {
+                "prompt": "Quiero ver las promociones",
+                "user_id": "user123",
+                "user_name": "Juan Pérez"
+            }
+        }
+    }), 200
 
 @app.route('/test', methods=['GET'])
 def test():

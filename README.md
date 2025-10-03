@@ -58,7 +58,7 @@ En `app.py`, asegúrate de que el bloque de **configuración de producción** es
 
 ```python
 ####################### producción (Free Plan) ######################
-CORS(app, supports_credentials=True, origins=["http://www.pollerialafamilia.com", "https://www.pollerialafamilia.com", 
+CORS(app, supports_credentials=True, origins=["http://www.pollerialafamilia.com", "https://www.pollerialafamilia.com",
                                               "http://pollerialafamilia.com", "https://pollerialafamilia.com"],
      allow_headers=["Content-Type", "Authorization", "X-Session-Id"],
      expose_headers=["X-Session-Id"])
@@ -408,13 +408,25 @@ pip install -r requirements.txt
 
 ### 4. Configurar Variables de Entorno
 
-Crea un archivo `.env` (no subir a Git):
+Crea un archivo `config.py` copiando el ejemplo:
 
 ```bash
-OPENAI_API_KEY=tu_api_key
-SECRET_KEY=tu_secret_key
-API_URL=http://127.0.0.1:8000
+# Windows
+copy config.example.py config.py
+
+# Linux/Mac
+cp config.example.py config.py
 ```
+
+Luego edita `config.py` y agrega tus valores reales:
+
+```python
+# config.py
+OPENAI_API_KEY = "sk-proj-TU_API_KEY_REAL_AQUI"
+API_URL = "http://127.0.0.1:8000"  # Para desarrollo local
+```
+
+**⚠️ NUNCA subas `config.py` a Git** - Ya está en `.gitignore`
 
 ### 5. Configurar para Desarrollo Local
 
@@ -609,8 +621,8 @@ redis>=3.5.3
 2. Verifica que los orígenes CORS incluyan tu dominio:
 
 ```python
-CORS(app, supports_credentials=True, 
-     origins=["https://www.pollerialafamilia.com", 
+CORS(app, supports_credentials=True,
+     origins=["https://www.pollerialafamilia.com",
               "https://pollerialafamilia.com"],
      allow_headers=["Content-Type", "Authorization"],
      expose_headers=["X-Session-Id"])
