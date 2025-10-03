@@ -15,86 +15,83 @@ from utilities import format_order_review, parse_payment_method, clean_json_resp
 
 app = Flask(__name__)
 
-####################### local ##########################
-CORS(app, supports_credentials=True)  # Habilita el soporte para credenciales
+####################### CONFIGURACIÓN DE PRODUCCIÓN ##########################
 # Configura CORS para permitir tu dominio y manejar cookies de sesión
-
-#Configuración local
-# Configuración para la sesión
-app.config["SECRET_KEY"] = "una_clave_secreta_muy_segura"
-app.config["SESSION_TYPE"] = "filesystem"
-app.config["SESSION_PERMANENT"] = False
-app.config["SESSION_USE_SIGNER"] = True
-Session(app)
-
-####################### producción ######################
-"""
-CORS(app, supports_credentials=True, origins=["http://www.pollerialafamilia.com", "https://www.pollerialafamilia.com",
-                                              "http://pollerialafamilia.com", "https://pollerialafamilia.com"],
+CORS(app,
+     supports_credentials=True,
+     origins=[
+         "http://www.pollerialafamilia.com",
+         "https://www.pollerialafamilia.com",
+         "http://pollerialafamilia.com",
+         "https://pollerialafamilia.com"
+     ],
      allow_headers=["Content-Type", "Authorization", "X-Session-Id"],
      expose_headers=["X-Session-Id"])
-# Esto habilita CORS para todos los dominios y rutas; ajusta según necesidad.
 
-# Configura la aplicación para utilizar sesiones basadas en cookies seguras
+# Configuración de sesión segura para producción
 app.config.update(
     SESSION_COOKIE_SECURE=True,
     SESSION_COOKIE_HTTPONLY=True,
     SESSION_COOKIE_SAMESITE='None',
     SESSION_REFRESH_EACH_REQUEST=True,
-    SECRET_KEY="una_clave_secreta_muy_segura",
-    SESSION_TYPE="redis",
-    SESSION_REDIS=redis.Redis(
-        host='red-cq5nvg6ehbks73brnkvg',
-        port=6379,
-        ssl_cert_reqs=None
-    ),
+    SECRET_KEY="una_clave_secreta_muy_segura_polleria_2024",
+    SESSION_TYPE="filesystem",
     SESSION_PERMANENT=False,
     SESSION_USE_SIGNER=True
 )
 Session(app)
-"""
-
-###########################################3
-
-# Configuración de la sesión usando archivos
-"""
-app.config["SECRET_KEY"] = "una_clave_secreta_muy_segura"
-app.config["SESSION_TYPE"] = "filesystem"
-app.config["SESSION_PERMANENT"] = False
-app.config["SESSION_USE_SIGNER"] = True
-Session(app)
-"""
 
 ###########################################3
 client = OpenAI(api_key=OPENAI_API_KEY)
 
 @app.route('/ask', methods=['POST'])
 def ask_gpt():
-    data = request.json
-    raw_prompt = data.get('prompt', "").lower()
-    user_id_encrypted = data.get('user_id')  # Recibe el ID del usuario encriptado
-    user_name = data.get('user_name')  # Recibe el nombre del usuario
+    try:
+        # Verificar que la petición tiene datos JSON
+        if not request.json:
+            return jsonify({"error": "No se recibió contenido JSON", "response": "Error en la solicitud"}), 400
+        
+        data = request.json
+        raw_prompt = data.get('prompt', "").lower()
+        user_id_encrypted = data.get('user_id')  # Recibe el ID del usuario encriptado
+        user_name = data.get('user_name')  # Recibe el nombre del usuario
 
-    # Inicializa el estado de la conversación si no existe
-    if 'conversation_state' not in session:
-        reset_conversation_state(user_name)
+        # Validar que se recibió el prompt
+        if not raw_prompt:
+            return jsonify({"error": "Prompt vacío", "response": "Por favor, escribe un mensaje"}), 400
 
-    conversation_state = session['conversation_state']
-    messages = session['messages']
+        # Inicializa el estado de la conversación si no existe
+        if 'conversation_state' not in session:
+            reset_conversation_state(user_name)
 
-    # Procesa y clasifica el mensaje del usuario
-    result = preprocess_and_classify(raw_prompt, conversation_state)
-    category = result['categoria']
-    prompt = result['mensaje']
+        conversation_state = session['conversation_state']
+        messages = session['messages']
 
-    print(category)
+        # Procesa y clasifica el mensaje del usuario
+        result = preprocess_and_classify(raw_prompt, conversation_state)
+        category = result['categoria']
+        prompt = result['mensaje']
 
-    # Añade el mensaje del usuario a la sesión
-    messages.append({"role": "user", "content": prompt})
-    update_conversation_state(conversation_state, category, prompt)
+        print(f"[INFO] Categoría: {category} | Usuario: {user_name}")
 
-    # Deriva la respuesta según la categoría
-    return route_message_based_on_category(category, prompt, messages, conversation_state, user_id_encrypted)
+        # Añade el mensaje del usuario a la sesión
+        messages.append({"role": "user", "content": prompt})
+        update_conversation_state(conversation_state, category, prompt)
+
+        # Deriva la respuesta según la categoría
+        return route_message_based_on_category(category, prompt, messages, conversation_state, user_id_encrypted)
+    
+    except Exception as e:
+        # Log del error para debugging
+        print(f"[ERROR] Error en ask_gpt: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        
+        # Respuesta amigable al usuario
+        return jsonify({
+            "error": str(e),
+            "response": "Lo siento, ocurrió un error al procesar tu mensaje. Por favor, intenta de nuevo."
+        }), 500
 
 def reset_conversation_state(user_name):
     """Resets the conversation state for a new session."""
@@ -493,6 +490,29 @@ def home():
 @app.route('/test', methods=['GET'])
 def test():
     return "Hola, todo OK", 200
+
+@app.route('/health', methods=['GET'])
+def health():
+    """Endpoint de diagnóstico completo"""
+    try:
+        # Verificar que OpenAI API Key existe
+        api_key_status = "✓ Configurada" if OPENAI_API_KEY and len(OPENAI_API_KEY) > 20 else "✗ No configurada"
+        
+        return jsonify({
+            "status": "healthy",
+            "openai_api_key": api_key_status,
+            "session_type": app.config.get("SESSION_TYPE", "No configurado"),
+            "cors_origins": [
+                "https://pollerialafamilia.com",
+                "https://www.pollerialafamilia.com"
+            ],
+            "endpoints_working": True
+        }), 200
+    except Exception as e:
+        return jsonify({
+            "status": "error",
+            "error": str(e)
+        }), 500
 
 if __name__ == "__main__":
     app.run(debug=True)
